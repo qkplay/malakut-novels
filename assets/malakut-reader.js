@@ -17,7 +17,28 @@ const launcher=document.createElement('button');launcher.id='malakut-launcher';l
 const panel=$('.ml-panel',bar);let playing=false,last=0,saveTimer=0,userInteracting=false,resumeAt=0,animationId=0;
 const persist=()=>{try{localStorage.setItem(settingsKey,JSON.stringify(state))}catch{}};
 const isPaged=()=>state.layout!=='scroll'&&content!==document.body;
-function stopAuto(){playing=false;last=0;cancelAnimationFrame(animationId);$('[data-act="play"]',bar).textContent='▶ تمرير'}
+// Screen Wake Lock: active only while auto-scroll runs and page is visible.
+let wakeLock=null;
+let wakeNoticeShown=false;
+async function requestWakeLock(){
+ if(!playing||document.visibilityState!=='visible'||wakeLock)return;
+ if(!('wakeLock' in navigator)||!navigator.wakeLock?.request){
+  if(!wakeNoticeShown){wakeNoticeShown=true;console.info('Wake Lock is not supported by this browser.');}
+  return;
+ }
+ try{
+  const lock=await navigator.wakeLock.request('screen');
+  if(!playing||document.visibilityState!=='visible'){await lock.release();return;}
+  wakeLock=lock;
+  lock.addEventListener('release',()=>{if(wakeLock===lock)wakeLock=null;});
+ }catch(error){console.info('Screen Wake Lock unavailable:',error?.name||error);}
+}
+function releaseWakeLock(){const lock=wakeLock;wakeLock=null;if(lock)lock.release().catch(()=>{});}
+document.addEventListener('visibilitychange',()=>{
+ if(document.visibilityState==='visible'&&playing)requestWakeLock();
+ else releaseWakeLock();
+});
+function stopAuto(){playing=false;last=0;releaseWakeLock();cancelAnimationFrame(animationId);$('[data-act="play"]',bar).textContent='▶ تمرير'}
 function apply(){
  document.body.classList.remove('malakut-paper','malakut-night','malakut-clean','malakut-white','malakut-focus','malakut-paged','malakut-spread','malakut-single');
  if(state.mode!=='original')document.body.classList.add('malakut-'+state.mode);
@@ -38,7 +59,7 @@ function postpone(ms){resumeAt=performance.now()+ms;last=0}
 function pageStep(direction){if(!isPaged())return;const step=content.clientWidth;content.scrollBy({left:direction*step,behavior:'smooth'});setTimeout(progress,450)}
 bar.addEventListener('click',e=>{const b=e.target.closest('button[data-act]');if(!b)return;const act=b.dataset.act;
  if(act==='panel'){panel.hidden=!panel.hidden;b.setAttribute('aria-expanded',String(!panel.hidden))}
- if(act==='play'){if(playing)stopAuto();else{playing=true;last=0;b.textContent='⏸ إيقاف';animationId=requestAnimationFrame(tick)}}
+ if(act==='play'){if(playing)stopAuto();else{playing=true;last=0;b.textContent='⏸ إيقاف';requestWakeLock();animationId=requestAnimationFrame(tick)}}
  if(act==='next')pageStep(-1);if(act==='prev')pageStep(1);
  if(act==='smaller'||act==='bigger'){state.size=clamp(state.size+(act==='bigger'?2:-2),14,40,22);apply()}
  if(act==='save'){save();b.textContent='✓ تم الحفظ';setTimeout(()=>b.textContent='🔖 حفظ',1200)}
@@ -57,7 +78,7 @@ addEventListener('pointerup',e=>{if(e.pointerType==='touch'||e.pointerType==='pe
 addEventListener('pointercancel',()=>{userInteracting=false;postpone(900)},{passive:true});
 addEventListener('scroll',()=>{if(!isPaged())progress();clearTimeout(saveTimer);saveTimer=setTimeout(save,1300)},{passive:true});
 if(content!==document.body)content.addEventListener('scroll',()=>{if(isPaged()){progress();clearTimeout(saveTimer);saveTimer=setTimeout(save,1000)}},{passive:true});
-addEventListener('resize',progress);addEventListener('pagehide',save);
+addEventListener('resize',progress);addEventListener('pagehide',()=>{save();releaseWakeLock()});
 addEventListener('keydown',e=>{if(e.altKey&&e.code==='Space'){e.preventDefault();$('[data-act="play"]',bar).click()}if(isPaged()&&!e.altKey&&!e.ctrlKey&&!e.metaKey&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();pageStep(e.key==='ArrowLeft'?-1:1)}}if(e.key==='Escape'&&!panel.hidden){panel.hidden=true;$('[data-act="panel"]',bar).setAttribute('aria-expanded','false')}});
 apply();progress();
 })();
