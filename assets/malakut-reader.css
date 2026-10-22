@@ -13,3 +13,6 @@ body.malakut-eink #malakut-content a{color:#343434!important;text-decoration:und
 body.malakut-eink #malakut-content img{filter:grayscale(1) contrast(1.08)}
 body.malakut-eink.malakut-paged #malakut-content{max-width:min(96vw,1500px)!important;width:calc(100% - 30px)!important;margin:14px auto!important;padding:24px!important}
 @media print{body.malakut-eink,body.malakut-eink #malakut-content{background:#fff!important;color:#000!important;filter:none!important}}
+
+/* Persistent home button in the shared reader toolbar */
+#malakut-tools .ml-home{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 12px;border-radius:9px;background:#d9b67c;color:#122037!important;text-decoration:none!important;border:1px solid #f2d7a4;font-weight:700;white-space:nowrap;line-height:1.5}#malakut-tools .ml-home:hover,#malakut-tools .ml-home:focus-visible{background:#f2d7a4;color:#101b2c!important;outline:2px solid #fff;outline-offset:2px}@media(max-width:620px){#malakut-tools .ml-home{padding:6px 9px}}
