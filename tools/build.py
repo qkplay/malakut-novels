@@ -14,6 +14,11 @@ COVERS={'ذات الرجع':'return.webp','خارج الكادر':'outside-frame
 BLURBS={'ذات الرجع':'رحلة إلى المجهول، حيث تتجاوز الأسرار حدود ما نعرفه عن الكون.','خارج الكادر':'ما الذي تخفيه العدسة، وما الذي لم يكن ينبغي أن يظهر في الصورة؟','الشقة ١٣٣':'غلطة في رقم شقة تفتح الباب لمواقف مصرية لا تُنسى.','وتلك الأيام':'حكايات تتقاطع فيها مصائر المصريين بين الضحك والألم وتقلبات الأيام.','ما لم تأخذه السنين':'حكاية حب وذكريات تتحدى الفراق وتبقى رغم مرور السنين.'}
 TRAILERS={'الشقة ١٣٣':'https://www.youtube.com/watch?v=rdk7Ps0fLnc'}
 GENRES={'ذات الرجع':'خيال علمي','خارج الكادر':'غموض وتشويق','الشقة ١٣٣':'كوميديا اجتماعية','وتلك الأيام':'دراما اجتماعية','ما لم تأخذه السنين':'رواية تاريخية'}
+GOAT='<script data-goatcounter="https://malakut-novels.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>'
+def add_counter(html):
+    if 'data-goatcounter=' not in html:
+        html=re.sub(r'</body\s*>',lambda m:GOAT+m.group(0),html,count=1,flags=re.I)
+    return html
 def norm(s):
     return re.sub(r'\s+',' ',re.sub(r'[-_]+',' ',s)).strip().translate(str.maketrans('0123456789','٠١٢٣٤٥٦٧٨٩'))
 def identify(stem):
@@ -32,9 +37,7 @@ for p in sorted(OUT.glob('*.html')):
         html=re.sub(r'</head\s*>','<link rel="stylesheet" href="./assets/malakut-reader.css"></head>',html,count=1,flags=re.I)
     if re.search(r'</body\s*>',html,re.I) and 'malakut-reader.js' not in html:
         html=re.sub(r'</body\s*>','<script src="./assets/malakut-reader.js" defer></script></body>',html,count=1,flags=re.I)
-       if 'data-goatcounter=' not in html:
-        html=html.replace('</body>', '<script data-goatcounter="https://malakut-novels.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></body>')
-    p.write_text(html,encoding='utf-8')
+    p.write_text(add_counter(html),encoding='utf-8')
 entries=list(books.values())
 (OUT/'catalog.json').write_text(json.dumps({'count':len(entries),'books':entries},ensure_ascii=False,indent=2),encoding='utf-8')
 index=OUT/'index.html'
@@ -52,13 +55,10 @@ if index.exists():
     shelf='\n'.join(cards)
     html,n=re.subn(r'<div\s+class=["\']books["\'][^>]*>.*?</div>\s*</main>',lambda m:'<div class="books" id="smart-books">'+shelf+'</div></main>',html,count=1,flags=re.S|re.I)
     if not n:
-        # Fallback for a differently structured index: replace its shelf only if a clear marker exists.
         html,n=re.subn(r'<div\s+class=["\']books["\'][^>]*>.*?(?=<section\s+class=["\']quote)',lambda m:'<div class="books" id="smart-books">'+shelf+'</div></main>\n',html,count=1,flags=re.S|re.I)
     if not n:raise RuntimeError('لم أجد قسم .books في index.html — لم يتم تغيير الصفحة الأصلية')
     css='''<style id="ml-card-style">.books{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:25px;max-width:1100px;margin:auto}.ml-card{border:1px solid #39455b;border-radius:17px;overflow:hidden;background:#152238}.ml-image{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:#233149}.ml-image>img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .3s}.ml-card:hover img{transform:scale(1.025)}.ml-hover{position:absolute;inset:0;background:#07101de8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px;opacity:0;transition:opacity .2s;color:#fff}.ml-hover strong{font-size:1.6rem;color:#e7bb78}.ml-hover span{max-width:420px}.ml-hover em{color:#e7bb78;font-style:normal}.ml-card:hover .ml-hover,.ml-image:focus-visible .ml-hover{opacity:1}.ml-meta{padding:14px 17px;color:#b6c2d2;font-size:.86rem}.ml-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}.ml-actions a{background:#e7bb78;color:#152238;padding:5px 14px;border-radius:8px;font-weight:700}.ml-actions .ml-trailer{background:transparent;color:#e7bb78;border:1px solid #e7bb78}.ml-chapters{margin-top:10px}.ml-chapters summary{cursor:pointer;color:#e7bb78}.ml-chapters a{display:block;padding:3px 8px}.ml-no-cover{display:grid;place-items:center;height:100%;font-size:2rem;color:#e7bb78}@media(max-width:650px){.books{grid-template-columns:1fr}.ml-hover{display:none}.ml-card:focus-within .ml-hover{display:flex;opacity:1}}</style>'''
     html=re.sub(r'</head\s*>',css+'</head>',html,count=1,flags=re.I)
     html=re.sub(r'أربع روايات\s*•\s*منها رواية قيد الكتابة',f'{len(entries)} روايات • تحديث تلقائي',html)
-        if 'data-goatcounter=' not in html:
-        html=html.replace('</body>', '<script data-goatcounter="https://malakut-novels.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script></body>')
-    index.write_text(html,encoding='utf-8')
+    index.write_text(add_counter(html),encoding='utf-8')
 print('Published',len(entries),'novels and',sum(len(b['chapters']) for b in entries),'HTML files')
